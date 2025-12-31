@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chúc Mừng Năm Mới 2025</title>
+    <style>
+        body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background-color: #000511; font-family: 'Courier New', Courier, monospace; }
+        canvas { display: block; image-rendering: pixelated; }
+        #ui-container { position: absolute; top: 35%; left: 50%; transform: translate(-50%, -50%); text-align: center; z-index: 20; cursor: pointer; user-select: none; width: 90%; }
+        #btn-wish { font-size: 1.8rem; font-weight: bold; color: #ffff00; text-shadow: 3px 3px #ff4400; background: rgba(0, 0, 0, 0.7); padding: 20px; border: 5px double #ffffff; animation: blink 0.8s infinite; }
+        #hint { color: #aaa; margin-top: 15px; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 1px; }
+        @keyframes blink { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.05); color: #fff; } }
+    </style>
+</head>
+<body>
+    <div id="ui-container" onclick="startAutoFirework()">
+        <div id="btn-wish">CHÚC MỪNG NĂM MỚI 2026</div>
+        <p id="hint">Ấn vào chữ để xem pháo hoa tự động</p>
+    </div>
+    <canvas id="canvas"></canvas>
+
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        let particles = [], stars = [], buildings = [], isAuto = false;
+
+        function resize() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            initStars();
+            createCity();
+        }
+        window.addEventListener('resize', resize);
+
+        function initStars() {
+            stars = [];
+            for (let i = 0; i < 120; i++) stars.push({ x: Math.random() * canvas.width, y: Math.random() * canvas.height * 0.7, s: Math.random() * 2 });
+        }
+
+        function createCity() {
+            buildings = [];
+            const colors = ['#1a1a2e', '#16213e', '#0f3460', '#1b1b1b'];
+            const windowColors = ['#ffd700', '#ff0055', '#00ffcc', '#ffffff'];
+            let x = 0;
+            while (x < canvas.width) {
+                let w = Math.random() * 50 + 40;
+                let h = Math.random() * 180 + 60;
+                let bColor = colors[Math.floor(Math.random() * colors.length)];
+                let windows = [];
+                for (let row = 15; row < h - 15; row += 20) {
+                    for (let col = 10; col < w - 15; col += 12) {
+                        if (Math.random() > 0.5) windows.push({dx: col, dy: row, c: windowColors[Math.floor(Math.random() * windowColors.length)]});
+                    }
+                }
+                buildings.push({x, w, h, bColor, windows});
+                x += w + 4;
+            }
+        }
+
+        class Particle {
+            constructor(x, y, color) {
+                this.x = x; this.y = y; this.color = color;
+                this.vx = (Math.random() - 0.5) * 15;
+                this.vy = (Math.random() - 0.5) * 15;
+                this.life = 100;
+                this.gravity = 0.25;
+            }
+            update() {
+                this.vx *= 0.95; this.vy *= 0.95; this.vy += this.gravity;
+                this.x += this.vx; this.y += this.vy;
+                this.life -= 2.5;
+            }
+            draw() {
+                ctx.fillStyle = this.color;
+                ctx.fillRect(Math.floor(this.x), Math.floor(this.y), 4, 4);
+            }
+        }
+
+        function launchFirework() {
+            const colors = ['#ff0044', '#00ff66', '#00ffff', '#ffff00', '#ff00ff', '#ffffff'];
+            const color = colors[Math.floor(Math.random() * colors.length)];
+            const x = Math.random() * canvas.width;
+            const y = Math.random() * (canvas.height * 0.4);
+            for (let i = 0; i < 60; i++) particles.push(new Particle(x, y, color));
+        }
+
+        function startAutoFirework() {
+            if(!isAuto) {
+                isAuto = true;
+                document.getElementById('hint').innerText = "HAPPY NEW YEAR! 🎆";
+                setInterval(() => { if(Math.random() > 0.2) launchFirework(); }, 400);
+            }
+        }
+
+        function animate() {
+            ctx.fillStyle = 'rgba(0, 5, 17, 0.3)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = "white";
+            stars.forEach(s => ctx.fillRect(s.x, s.y, s.s, s.s));
+            buildings.forEach(b => {
+                ctx.fillStyle = b.bColor;
+                ctx.fillRect(b.x, canvas.height - b.h, b.w, b.h);
+                b.windows.forEach(win => {
+                    ctx.fillStyle = win.c;
+                    ctx.fillRect(b.x + win.dx, canvas.height - b.h + win.dy, 3, 3);
+                });
+            });
+            particles.forEach((p, i) => {
+                if (p.life <= 0) particles.splice(i, 1);
+                else { p.update(); p.draw(); }
+            });
+            requestAnimationFrame(animate);
+        }
+        resize();
+        animate();
+    </script>
+</body>
+</html>
