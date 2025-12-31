@@ -3,27 +3,27 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Chúc Mừng Năm Mới 2025</title>
+    <title>Pháo Hoa & Thiên Thạch 2025</title>
     <style>
         body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background-color: #000511; font-family: 'Courier New', Courier, monospace; }
         canvas { display: block; image-rendering: pixelated; }
-        #ui-container { position: absolute; top: 35%; left: 50%; transform: translate(-50%, -50%); text-align: center; z-index: 20; cursor: pointer; user-select: none; width: 90%; }
+        #ui-container { position: absolute; top: 30%; left: 50%; transform: translate(-50%, -50%); text-align: center; z-index: 20; cursor: pointer; user-select: none; width: 90%; }
         #btn-wish { font-size: 1.8rem; font-weight: bold; color: #ffff00; text-shadow: 3px 3px #ff4400; background: rgba(0, 0, 0, 0.7); padding: 20px; border: 5px double #ffffff; animation: blink 0.8s infinite; }
-        #hint { color: #aaa; margin-top: 15px; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 1px; }
+        #hint { color: #00ffcc; margin-top: 15px; font-size: 0.7rem; text-transform: uppercase; font-weight: bold; }
         @keyframes blink { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.05); color: #fff; } }
     </style>
 </head>
 <body>
-    <div id="ui-container" onclick="startAutoFirework()">
-        <div id="btn-wish">CHÚC MỪNG NĂM MỚI 2026</div>
-        <p id="hint">Ấn vào chữ để xem pháo hoa tự động</p>
+    <div id="ui-container" onclick="startEverything()">
+        <div id="btn-wish">CHÚC MỪNG NĂM MỚI</div>
+        <p id="hint">CẨN THẬN SAO BĂNG RƠI!</p>
     </div>
     <canvas id="canvas"></canvas>
 
     <script>
         const canvas = document.getElementById('canvas');
         const ctx = canvas.getContext('2d');
-        let particles = [], stars = [], buildings = [], isAuto = false;
+        let particles = [], stars = [], buildings = [], shootingStars = [], isAuto = false;
 
         function resize() {
             canvas.width = window.innerWidth;
@@ -35,7 +35,7 @@
 
         function initStars() {
             stars = [];
-            for (let i = 0; i < 120; i++) stars.push({ x: Math.random() * canvas.width, y: Math.random() * canvas.height * 0.7, s: Math.random() * 2 });
+            for (let i = 0; i < 100; i++) stars.push({ x: Math.random() * canvas.width, y: Math.random() * canvas.height * 0.7, s: Math.random() * 2 });
         }
 
         function createCity() {
@@ -45,7 +45,7 @@
             let x = 0;
             while (x < canvas.width) {
                 let w = Math.random() * 50 + 40;
-                let h = Math.random() * 180 + 60;
+                let h = Math.random() * 150 + 60;
                 let bColor = colors[Math.floor(Math.random() * colors.length)];
                 let windows = [];
                 for (let row = 15; row < h - 15; row += 20) {
@@ -53,18 +53,19 @@
                         if (Math.random() > 0.5) windows.push({dx: col, dy: row, c: windowColors[Math.floor(Math.random() * windowColors.length)]});
                     }
                 }
-                buildings.push({x, w, h, bColor, windows});
-                x += w + 4;
+                buildings.push({x, w, h, bColor, windows, alive: true});
+                x += w + 5;
             }
         }
 
         class Particle {
-            constructor(x, y, color) {
+            constructor(x, y, color, size = 4) {
                 this.x = x; this.y = y; this.color = color;
                 this.vx = (Math.random() - 0.5) * 15;
                 this.vy = (Math.random() - 0.5) * 15;
                 this.life = 100;
-                this.gravity = 0.25;
+                this.gravity = 0.2;
+                this.size = size;
             }
             update() {
                 this.vx *= 0.95; this.vy *= 0.95; this.vy += this.gravity;
@@ -73,23 +74,70 @@
             }
             draw() {
                 ctx.fillStyle = this.color;
-                ctx.fillRect(Math.floor(this.x), Math.floor(this.y), 4, 4);
+                ctx.fillRect(Math.floor(this.x), Math.floor(this.y), this.size, this.size);
+            }
+        }
+
+        class ShootingStar {
+            constructor(isDangerous = false) {
+                this.x = Math.random() * canvas.width;
+                this.y = 0;
+                this.vx = (Math.random() > 0.5 ? 1 : -1) * (Math.random() * 10 + 5);
+                this.vy = Math.random() * 10 + 5;
+                this.len = Math.random() * 80 + 20;
+                this.isDangerous = isDangerous;
+                this.active = true;
+            }
+            update() {
+                this.x += this.vx;
+                this.y += this.vy;
+                if (this.y > canvas.height) this.active = false;
+                
+                // Kiểm tra va chạm tòa nhà nếu là thiên thạch nguy hiểm
+                if (this.isDangerous && this.y > canvas.height - 150) {
+                    buildings.forEach(b => {
+                        if (b.alive && this.x > b.x && this.x < b.x + b.w && this.y > canvas.height - b.h) {
+                            b.alive = false;
+                            this.explode(this.x, this.y);
+                            this.active = false;
+                        }
+                    });
+                }
+            }
+            draw() {
+                ctx.strokeStyle = this.isDangerous ? "orange" : "white";
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo(this.x, this.y);
+                ctx.lineTo(this.x - this.vx, this.y - this.vy);
+                ctx.stroke();
+            }
+            explode(x, y) {
+                for (let i = 0; i < 100; i++) particles.push(new Particle(x, y, "#ff4400", 6));
             }
         }
 
         function launchFirework() {
             const colors = ['#ff0044', '#00ff66', '#00ffff', '#ffff00', '#ff00ff', '#ffffff'];
-            const color = colors[Math.floor(Math.random() * colors.length)];
             const x = Math.random() * canvas.width;
             const y = Math.random() * (canvas.height * 0.4);
-            for (let i = 0; i < 60; i++) particles.push(new Particle(x, y, color));
+            for (let i = 0; i < 50; i++) particles.push(new Particle(x, y, colors[Math.floor(Math.random() * colors.length)]));
         }
 
-        function startAutoFirework() {
+        function startEverything() {
             if(!isAuto) {
                 isAuto = true;
-                document.getElementById('hint').innerText = "HAPPY NEW YEAR! 🎆";
-                setInterval(() => { if(Math.random() > 0.2) launchFirework(); }, 400);
+                document.getElementById('hint').innerText = "CẢNH BÁO THIÊN THẠCH!";
+                // Bắn pháo tự động
+                setInterval(() => { if(Math.random() > 0.3) launchFirework(); }, 500);
+                // Tạo sao băng trang trí
+                setInterval(() => { if(Math.random() > 0.7) shootingStars.push(new ShootingStar(false)); }, 2000);
+                // Sau 3 giây bắt đầu có tỉ lệ rơi trúng nhà
+                setTimeout(() => {
+                    setInterval(() => {
+                        if(Math.random() > 0.8) shootingStars.push(new ShootingStar(true));
+                    }, 3000);
+                }, 3000);
             }
         }
 
@@ -98,7 +146,9 @@
             ctx.fillRect(0, 0, canvas.width, canvas.height);
             ctx.fillStyle = "white";
             stars.forEach(s => ctx.fillRect(s.x, s.y, s.s, s.s));
+            
             buildings.forEach(b => {
+                if (!b.alive) return;
                 ctx.fillStyle = b.bColor;
                 ctx.fillRect(b.x, canvas.height - b.h, b.w, b.h);
                 b.windows.forEach(win => {
@@ -106,6 +156,12 @@
                     ctx.fillRect(b.x + win.dx, canvas.height - b.h + win.dy, 3, 3);
                 });
             });
+
+            shootingStars.forEach((s, i) => {
+                s.update(); s.draw();
+                if (!s.active) shootingStars.splice(i, 1);
+            });
+
             particles.forEach((p, i) => {
                 if (p.life <= 0) particles.splice(i, 1);
                 else { p.update(); p.draw(); }
