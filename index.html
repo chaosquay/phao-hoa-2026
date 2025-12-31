@@ -3,20 +3,18 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pháo Hoa & Thiên Thạch 2025</title>
+    <title>Pháo Hoa Pixel 2025</title>
     <style>
         body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background-color: #000511; font-family: 'Courier New', Courier, monospace; }
         canvas { display: block; image-rendering: pixelated; }
         #ui-container { position: absolute; top: 30%; left: 50%; transform: translate(-50%, -50%); text-align: center; z-index: 20; cursor: pointer; user-select: none; width: 90%; }
-        #btn-wish { font-size: 1.8rem; font-weight: bold; color: #ffff00; text-shadow: 3px 3px #ff4400; background: rgba(0, 0, 0, 0.7); padding: 20px; border: 5px double #ffffff; animation: blink 0.8s infinite; }
-        #hint { color: #00ffcc; margin-top: 15px; font-size: 0.7rem; text-transform: uppercase; font-weight: bold; }
-        @keyframes blink { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.05); color: #fff; } }
+        #btn-wish { font-size: 2rem; font-weight: bold; color: #ffff00; text-shadow: 4px 4px #ff4400; background: rgba(0, 0, 0, 0.7); padding: 25px; border: 6px double #ffffff; animation: blink 1s infinite; }
+        @keyframes blink { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.05); } }
     </style>
 </head>
 <body>
     <div id="ui-container" onclick="startEverything()">
         <div id="btn-wish">CHÚC MỪNG NĂM MỚI</div>
-        <p id="hint">CẨN THẬN SAO BĂNG RƠI!</p>
     </div>
     <canvas id="canvas"></canvas>
 
@@ -24,6 +22,7 @@
         const canvas = document.getElementById('canvas');
         const ctx = canvas.getContext('2d');
         let particles = [], stars = [], buildings = [], shootingStars = [], isAuto = false;
+        let shakeTime = 0;
 
         function resize() {
             canvas.width = window.innerWidth;
@@ -44,8 +43,8 @@
             const windowColors = ['#ffd700', '#ff0055', '#00ffcc', '#ffffff'];
             let x = 0;
             while (x < canvas.width) {
-                let w = Math.random() * 50 + 40;
-                let h = Math.random() * 150 + 60;
+                let w = Math.random() * 50 + 50;
+                let h = Math.random() * 150 + 80;
                 let bColor = colors[Math.floor(Math.random() * colors.length)];
                 let windows = [];
                 for (let row = 15; row < h - 15; row += 20) {
@@ -53,24 +52,23 @@
                         if (Math.random() > 0.5) windows.push({dx: col, dy: row, c: windowColors[Math.floor(Math.random() * windowColors.length)]});
                     }
                 }
-                buildings.push({x, w, h, bColor, windows, alive: true});
-                x += w + 5;
+                buildings.push({x, w, h, bColor, windows, alive: true, rubble: []});
+                x += w + 8;
             }
         }
 
         class Particle {
-            constructor(x, y, color, size = 4) {
+            constructor(x, y, color, vx, vy, life, size = 4) {
                 this.x = x; this.y = y; this.color = color;
-                this.vx = (Math.random() - 0.5) * 15;
-                this.vy = (Math.random() - 0.5) * 15;
-                this.life = 100;
+                this.vx = vx; this.vy = vy;
+                this.life = life;
                 this.gravity = 0.2;
                 this.size = size;
             }
             update() {
-                this.vx *= 0.95; this.vy *= 0.95; this.vy += this.gravity;
+                this.vx *= 0.96; this.vy *= 0.96; this.vy += this.gravity;
                 this.x += this.vx; this.y += this.vy;
-                this.life -= 2.5;
+                this.life -= 2;
             }
             draw() {
                 ctx.fillStyle = this.color;
@@ -81,10 +79,9 @@
         class ShootingStar {
             constructor(isDangerous = false) {
                 this.x = Math.random() * canvas.width;
-                this.y = 0;
-                this.vx = (Math.random() > 0.5 ? 1 : -1) * (Math.random() * 10 + 5);
-                this.vy = Math.random() * 10 + 5;
-                this.len = Math.random() * 80 + 20;
+                this.y = -50;
+                this.vx = (Math.random() - 0.5) * 10;
+                this.vy = Math.random() * 12 + 8;
                 this.isDangerous = isDangerous;
                 this.active = true;
             }
@@ -93,27 +90,37 @@
                 this.y += this.vy;
                 if (this.y > canvas.height) this.active = false;
                 
-                // Kiểm tra va chạm tòa nhà nếu là thiên thạch nguy hiểm
-                if (this.isDangerous && this.y > canvas.height - 150) {
+                if (this.isDangerous) {
                     buildings.forEach(b => {
                         if (b.alive && this.x > b.x && this.x < b.x + b.w && this.y > canvas.height - b.h) {
-                            b.alive = false;
-                            this.explode(this.x, this.y);
-                            this.active = false;
+                            this.impact(b);
                         }
                     });
                 }
             }
+            impact(b) {
+                b.alive = false;
+                this.active = false;
+                shakeTime = 15; // Rung màn hình
+                // Hiệu ứng nổ tung tóe
+                for (let i = 0; i < 60; i++) {
+                    particles.push(new Particle(this.x, this.y, "#ff4400", (Math.random()-0.5)*20, (Math.random()-0.5)*20, 100, 6));
+                    particles.push(new Particle(this.x, this.y, "#ffff00", (Math.random()-0.5)*15, (Math.random()-0.5)*15, 80, 4));
+                }
+                // Hiệu ứng tòa nhà sụp đổ (mảnh vụn bay lên rồi rơi xuống)
+                for (let i = 0; i < 30; i++) {
+                    particles.push(new Particle(b.x + Math.random()*b.w, canvas.height - Math.random()*b.h, b.bColor, (Math.random()-0.5)*5, -Math.random()*10, 150, 8));
+                }
+            }
             draw() {
-                ctx.strokeStyle = this.isDangerous ? "orange" : "white";
-                ctx.lineWidth = 2;
+                ctx.save();
+                ctx.strokeStyle = this.isDangerous ? "#ffaa00" : "white";
+                ctx.lineWidth = 4;
                 ctx.beginPath();
                 ctx.moveTo(this.x, this.y);
-                ctx.lineTo(this.x - this.vx, this.y - this.vy);
+                ctx.lineTo(this.x - this.vx * 2, this.y - this.vy * 2);
                 ctx.stroke();
-            }
-            explode(x, y) {
-                for (let i = 0; i < 100; i++) particles.push(new Particle(x, y, "#ff4400", 6));
+                ctx.restore();
             }
         }
 
@@ -121,55 +128,33 @@
             const colors = ['#ff0044', '#00ff66', '#00ffff', '#ffff00', '#ff00ff', '#ffffff'];
             const x = Math.random() * canvas.width;
             const y = Math.random() * (canvas.height * 0.4);
-            for (let i = 0; i < 50; i++) particles.push(new Particle(x, y, colors[Math.floor(Math.random() * colors.length)]));
+            const color = colors[Math.floor(Math.random() * colors.length)];
+            for (let i = 0; i < 60; i++) {
+                particles.push(new Particle(x, y, color, (Math.random()-0.5)*15, (Math.random()-0.5)*15, 100));
+            }
         }
 
         function startEverything() {
             if(!isAuto) {
                 isAuto = true;
-                document.getElementById('hint').innerText = "CẢNH BÁO THIÊN THẠCH!";
-                // Bắn pháo tự động
-                setInterval(() => { if(Math.random() > 0.3) launchFirework(); }, 500);
-                // Tạo sao băng trang trí
-                setInterval(() => { if(Math.random() > 0.7) shootingStars.push(new ShootingStar(false)); }, 2000);
-                // Sau 3 giây bắt đầu có tỉ lệ rơi trúng nhà
+                setInterval(() => { if(Math.random() > 0.4) launchFirework(); }, 600);
+                setInterval(() => { if(Math.random() > 0.8) shootingStars.push(new ShootingStar(false)); }, 1500);
                 setTimeout(() => {
                     setInterval(() => {
-                        if(Math.random() > 0.8) shootingStars.push(new ShootingStar(true));
-                    }, 3000);
+                        if(Math.random() > 0.7) shootingStars.push(new ShootingStar(true));
+                    }, 2500);
                 }, 3000);
             }
         }
 
         function animate() {
+            ctx.save();
+            // Xử lý rung màn hình
+            if (shakeTime > 0) {
+                let dx = (Math.random() - 0.5) * 15;
+                let dy = (Math.random() - 0.5) * 15;
+                ctx.translate(dx, dy);
+                shakeTime--;
+            }
+
             ctx.fillStyle = 'rgba(0, 5, 17, 0.3)';
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-            ctx.fillStyle = "white";
-            stars.forEach(s => ctx.fillRect(s.x, s.y, s.s, s.s));
-            
-            buildings.forEach(b => {
-                if (!b.alive) return;
-                ctx.fillStyle = b.bColor;
-                ctx.fillRect(b.x, canvas.height - b.h, b.w, b.h);
-                b.windows.forEach(win => {
-                    ctx.fillStyle = win.c;
-                    ctx.fillRect(b.x + win.dx, canvas.height - b.h + win.dy, 3, 3);
-                });
-            });
-
-            shootingStars.forEach((s, i) => {
-                s.update(); s.draw();
-                if (!s.active) shootingStars.splice(i, 1);
-            });
-
-            particles.forEach((p, i) => {
-                if (p.life <= 0) particles.splice(i, 1);
-                else { p.update(); p.draw(); }
-            });
-            requestAnimationFrame(animate);
-        }
-        resize();
-        animate();
-    </script>
-</body>
-</html>
